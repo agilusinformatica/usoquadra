@@ -22,6 +22,7 @@ module.exports = function (/* ctx */) {
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
+      'material-icons-outlined',
       // 'ionicons-v4',
       // 'mdi-v5',
       // 'fontawesome-v5',
@@ -105,9 +106,9 @@ module.exports = function (/* ctx */) {
       workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
       workboxOptions: {}, // only for GenerateSW
       manifest: {
-        name: 'Quasar App',
-        short_name: 'Quasar App',
-        description: 'A Quasar Framework app',
+        name: 'Uso da quadra',
+        short_name: 'Uso Quadra',
+        description: 'Um aplicativo simples que monitora o uso da quadra do edificio Danielle',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#ffffff',

@@ -1,36 +1,66 @@
 <template>
-  <div>
-    <h3>Status: {{status}}</h3>
-    <q-btn v-if="status === 'livre'" @click="ocupar">OCUPAR</q-btn>
-    <q-btn v-if="status !== 'livre'" @click="desocupar">DESOCUPAR</q-btn>
-    <q-btn @click="mostraDialogAgendar = true">AGENDAR</q-btn>
-    <h3>Agenda</h3>
-    <q-list>
-      <q-item v-for="item in agenda" :key="item.key">
-        <q-item-section>
-          <q-item-label>{{item.nome}}</q-item-label>
-          <q-item-label caption>{{item.horario}} </q-item-label>
-        </q-item-section>
-        <q-item-section side>
-          <q-btn icon="delete" flat round color="negative" @click="excluirItemAgenda(item.key)"></q-btn>
-        </q-item-section>
-      </q-item>
-    </q-list>
+  <div class="q-ma-lg row justify-center">
+    <div class="col-xs-12 col-sm-9 col-md-6 col-lg-4 col-xl-3">
+      <div class="text-h3 text-center q-mb-lg text-weight-light">Uso da quadra</div>
+      <div class="row items-center bg-white shadow-16 q-pa-md border">
+        <div class="col-8">
+          <div class="text-caption">Status</div>
+          <div class="text-h4 text-weight-light text-capitalize">
+            {{status}}
+            <q-icon v-if="status" name="fiber_manual_record" :color="status === 'livre' ? 'positive' : 'negative'" size="18px"/>
+          </div>
+        </div>
+        <div class="col-4 text-right">
+          <q-btn v-if="status === 'livre'" @click="ocupar" color="primary" label="Ocupar" :size="tamanhoCustom()" rounded/>
+          <q-btn v-if="status !== 'livre'" @click="desocupar" color="primary" label="Desocupar" :size="tamanhoCustom()" rounded/>
+        </div>
+      </div>
+
+      <div class="q-mt-lg bg-white shadow-16 q-pa-md border">
+        <div class="row justify-between q-mb-md">
+          <div class="text-h4 text-weight-light">Agenda</div>
+          <q-btn @click="abrirAgendamento" color="primary" label="Agendar" icon="event" :size="tamanhoCustom()" rounded />
+        </div>
+
+        <q-list padding>
+          <q-item v-for="item in agenda" :key="item.key">
+            <q-item-section>
+              <q-item-label>{{item.nome}}</q-item-label>
+              <q-item-label>{{item.horario}} </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn icon="o_delete" size="14px" flat round color="negative" @click="excluirItemAgenda(item.key)">
+                <q-tooltip>remover</q-tooltip>
+              </q-btn>
+            </q-item-section>
+            <q-separator spaced />
+          </q-item>
+        </q-list>
+      </div>
+      
+    </div>
+
     <q-dialog v-model="mostraDialogAgendar" persistent transition-show="scale" transition-hide="scale">
-      <q-card>
+      <q-card style="min-width: 360px; border-radius: 16px;">
+
         <q-card-section>
           <div class="text-h6">Agendar</div>
         </q-card-section>
 
-        <q-card-section class="q-pt-none">
-          <q-input v-model="itemAgenda.nome" label="Nome"/>
-          <q-time v-model="itemAgenda.horario" />
+        <q-card-section class="q-gutter-md">
+          <q-input v-model="itemAgenda.nome" label="Seu Nome" filled :error="erroNome" @input="erroNome = false"/>
+          <div class="row items-center justify-between">
+            <div class="col-12">Horário para agendar</div>
+            <div class="text-h5">{{itemAgenda.horario}}</div>
+          </div>
+          <h-time-picker v-model="itemAgenda.horario" />
         </q-card-section>
 
         <q-card-actions align="right" class="bg-white text-teal">
-          <q-btn @click="mostraDialogAgendar = false">CANCELAR</q-btn>
-          <q-btn @click="agendar">OK</q-btn>
+          <q-btn @click="mostraDialogAgendar = false" flat rounded label="cancelar" color="primary" />
+          <q-btn @click="agendar" label="Ok" rounded color="primary"/>
         </q-card-actions>
+
       </q-card>
     </q-dialog>
   </div>
@@ -39,18 +69,22 @@
 <script>
 import * as firebase from 'firebase/app'
 import 'firebase/database'
+import utils from 'src/lib/utils'
+import HTimePicker from 'src/components/HTimePicker'
 
 export default {
   name: 'PageIndex',
+  components: {HTimePicker},
   data () {
     return {
       status: '',
       agenda: [],
-      itemAgenda: {nome: "", horario: null},
-      mostraDialogAgendar: false
+      itemAgenda: {nome: "", horario: utils.horaAtual().toString().padStart(2, '0') + ":" + utils.minutoAtualBase5().toString().padStart(2, '0')},
+      mostraDialogAgendar: false,
+      erroNome: false
     }
   },
-  mounted () {
+  created () {
     // Your web app's Firebase configuration
     var firebaseConfig = {
       apiKey: "AIzaSyABZfEzRIS7dZp_9H8GFkokMiStEn_xq6U",
@@ -73,6 +107,9 @@ export default {
     })
   },
   methods: {
+    tamanhoCustom () {
+      return this.$q.screen.width < 380 ? '12px' : ''
+    },
     atualizaStatus(snapshot) {
       this.status = snapshot.val()
     },
@@ -86,18 +123,38 @@ export default {
           horario: valores[prop].horario
         })
       }
+      this.agenda.sort((a,b) => {
+        if (a.horario > b.horario) {
+          return 1;
+        }
+        if (b.horario > a.horario) {
+          return -1;
+        }
+        return 0;
+      })
+    },
+    nomeUsuario () {
+      return utils.getCookie('nomeUsuario')
     },
     ocupar () {
       this.$q.dialog({
         title: 'Ocupar',
         message: 'Nome de quem vai ocupar',
         prompt: {
-          model: '',
+          model: this.nomeUsuario(),
           type: 'text' // optional
         },
-        cancel: true,
+        ok: {
+          rounded: true
+        },
+        cancel: {
+          label: 'cancelar',
+          flat: true,
+          rounded: true
+        },
         persistent: true
       }).onOk(data => {
+        utils.setCookie('nomeUsuario', data, 365)
         if (this.status === 'livre') {
           firebase.database().ref('status').set('ocupado por ' + data)
         } else {
@@ -114,11 +171,31 @@ export default {
     excluirItemAgenda (key) {
       firebase.database().ref('agenda/' + key).remove()
     },
+    abrirAgendamento () {
+      this.itemAgenda.horario = utils.horaAtual().toString().padStart(2, '0') + ":" + utils.minutoAtualBase5().toString().padStart(2, '0')
+      this.itemAgenda.nome = this.nomeUsuario()
+      this.mostraDialogAgendar = true
+    },
     agendar () {
-      let key = firebase.database().ref().child('agenda').push().key
-      firebase.database().ref('agenda/' + key).set(this.itemAgenda)
-      this.mostraDialogAgendar = false
+      if (this.itemAgenda.nome) {
+        utils.setCookie('nomeUsuario', this.itemAgenda.nome, 1)
+        let key = firebase.database().ref().child('agenda').push().key
+        firebase.database().ref('agenda/' + key).set(this.itemAgenda)
+        this.mostraDialogAgendar = false
+      }
+      else {
+        this.erroNome = true
+      }
     }
   }
 }
 </script>
+<style>
+.border {
+  border-radius: 16px;
+}
+
+body {
+  background-color: #eee;
+}
+</style>
