@@ -25,15 +25,14 @@
         <q-list padding>
           <q-item v-for="item in agenda" :key="item.key">
             <q-item-section>
-              <q-item-label>{{item.nome}}</q-item-label>
-              <q-item-label>{{item.horario}} </q-item-label>
+              <q-item-label class="text-weight-bold">{{item.nome}}</q-item-label>
+              <q-item-label caption>{{item.horario}} </q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-btn icon="o_delete" size="14px" flat round color="negative" @click="excluirItemAgenda(item.key)">
                 <q-tooltip>remover</q-tooltip>
               </q-btn>
             </q-item-section>
-            <q-separator spaced />
           </q-item>
         </q-list>
       </div>
@@ -191,11 +190,11 @@ export default {
 }
 </script>
 <style>
-.border {
-  border-radius: 16px;
-}
-
 body {
   background-color: #eee;
+}
+
+.border {
+  border-radius: 16px;
 }
 </style>
