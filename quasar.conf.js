@@ -107,7 +107,7 @@ module.exports = function (/* ctx */) {
       workboxOptions: {}, // only for GenerateSW
       manifest: {
         name: 'Uso da quadra',
-        short_name: 'Uso Quadra',
+        short_name: 'UsoQuadra',
         description: 'Um aplicativo simples que monitora o uso da quadra do edificio Danielle',
         display: 'standalone',
         orientation: 'portrait',
