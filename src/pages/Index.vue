@@ -11,8 +11,11 @@
           </div>
         </div>
         <div class="col-4 text-right">
-          <q-btn v-if="status === 'livre'" @click="ocupar" color="primary" label="Ocupar" :size="tamanhoCustom()" rounded/>
+          <q-btn v-if="status === 'livre'" @click="abrirOcupacao" color="primary" label="Ocupar" :size="tamanhoCustom()" rounded/>
           <q-btn v-if="status !== 'livre'" @click="desocupar" color="primary" label="Desocupar" :size="tamanhoCustom()" rounded/>
+        </div>
+        <div class="text-h6 col-12 text-weight-light" v-if="horarioDesocupacao && status !== 'livre'">
+          Pretende desocupar às {{horarioDesocupacao}}
         </div>
       </div>
 
@@ -37,7 +40,7 @@
           </q-item>
         </q-list>
       </div>
-      
+
     </div>
 
     <q-dialog v-model="mostraDialogAgendar" persistent transition-show="scale" transition-hide="scale">
@@ -63,6 +66,29 @@
 
       </q-card>
     </q-dialog>
+    <q-dialog v-model="mostraDialogOcupar" persistent transition-show="scale" transition-hide="scale">
+      <q-card style="min-width: 360px; border-radius: 16px;">
+
+        <q-card-section>
+          <div class="text-h6">Ocupar</div>
+        </q-card-section>
+
+        <q-card-section class="q-gutter-md">
+          <q-input v-model="nomeOcupacao" label="Seu Nome" filled :error="erroNome" @input="erroNome = false"/>
+          <div class="row items-center justify-between">
+            <div class="col-12">Horário que pretende desocupar</div>
+            <div class="text-h5">{{horarioDesocupacao}}</div>
+          </div>
+          <h-time-picker v-model="horarioDesocupacao" />
+        </q-card-section>
+
+        <q-card-actions align="right" class="bg-white text-teal">
+          <q-btn @click="mostraDialogOcupar = false" flat rounded label="cancelar" color="primary" />
+          <q-btn @click="ocupar" label="Ok" rounded color="primary"/>
+        </q-card-actions>
+
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -81,7 +107,10 @@ export default {
       agenda: [],
       itemAgenda: {nome: "", horario: utils.horaAtual().toString().padStart(2, '0') + ":" + utils.minutoAtualBase5().toString().padStart(2, '0')},
       mostraDialogAgendar: false,
-      erroNome: false
+      mostraDialogOcupar: false,
+      erroNome: false,
+      horarioDesocupacao: '',
+      nomeOcupacao: ''
     }
   },
   created () {
@@ -102,6 +131,9 @@ export default {
     firebase.database().ref('status').on('value', snapshot => {
       this.atualizaStatus(snapshot)
     })
+    firebase.database().ref('horarioDesocupacao').on('value', snapshot => {
+      this.atualizaHorarioDesocupacao(snapshot)
+    })
     firebase.database().ref('agenda').on('value', snapshot => {
       this.atualizaAgenda(snapshot)
     })
@@ -109,6 +141,9 @@ export default {
   methods: {
     tamanhoCustom () {
       return this.$q.screen.width < 380 ? '12px' : ''
+    },
+    atualizaHorarioDesocupacao(snapshot) {
+      this.horarioDesocupacao = snapshot.val()
     },
     atualizaStatus(snapshot) {
       this.status = snapshot.val()
@@ -137,36 +172,19 @@ export default {
       return utils.getCookie('nomeUsuario')
     },
     ocupar () {
-      this.$q.dialog({
-        title: 'Ocupar',
-        message: 'Nome de quem vai ocupar',
-        prompt: {
-          model: this.nomeUsuario(),
-          type: 'text' // optional
-        },
-        ok: {
-          rounded: true
-        },
-        cancel: {
-          label: 'cancelar',
-          flat: true,
-          rounded: true
-        },
-        persistent: true
-      }).onOk(data => {
-        utils.setCookie('nomeUsuario', data, 365)
-        if (this.status === 'livre') {
-          firebase.database().ref('status').set('ocupado por ' + data)
-        } else {
-          this.$q.dialog({
-            title: 'Erro',
-            message: 'Não foi possível ocupar pois já está ocupada por outra pessoa'
-          })
-        }
-      })
+      if (this.nomeOcupacao) {
+        utils.setCookie('nomeUsuario', this.nomeOcupacao, 365)
+        firebase.database().ref('status').set('ocupado por ' + this.nomeOcupacao)
+        firebase.database().ref('horarioDesocupacao').set(this.horarioDesocupacao)
+        this.mostraDialogOcupar = false
+      }
+      else {
+        this.erroNome = true
+      }
     },
     desocupar () {
       firebase.database().ref('status').set('livre')
+      firebase.database().ref('horarioDesocupacao').set('')
     },
     excluirItemAgenda (key) {
       firebase.database().ref('agenda/' + key).remove()
@@ -175,6 +193,11 @@ export default {
       this.itemAgenda.horario = utils.horaAtual().toString().padStart(2, '0') + ":" + utils.minutoAtualBase5().toString().padStart(2, '0')
       this.itemAgenda.nome = this.nomeUsuario()
       this.mostraDialogAgendar = true
+    },
+    abrirOcupacao () {
+      this.horarioDesocupacao = utils.horaAtual().toString().padStart(2, '0') + ":" + utils.minutoAtualBase5().toString().padStart(2, '0')
+      this.nomeOcupacao = this.nomeUsuario()
+      this.mostraDialogOcupar = true
     },
     agendar () {
       if (this.itemAgenda.nome) {
